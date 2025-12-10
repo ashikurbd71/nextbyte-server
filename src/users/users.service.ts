@@ -1,0 +1,290 @@
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { BanUserDto } from './dto/ban-user.dto';
+import { User } from './entities/user.entity';
+
+@Injectable()
+export class UsersService {
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) { }
+
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    // Check if user with phone already exists
+    const existingUser = await this.userRepository.findOne({
+      where: { phone: createUserDto.phone }
+    });
+
+    if (existingUser) {
+      throw new BadRequestException('User with this phone number already exists');
+    }
+
+    // Check if email is provided and unique
+    if (createUserDto.email) {
+      const existingEmail = await this.userRepository.findOne({
+        where: { email: createUserDto.email }
+      });
+
+      if (existingEmail) {
+        throw new BadRequestException('User with this email already exists');
+      }
+    }
+
+    // Generate unique student ID
+    const studentId = await this.generateStudentId();
+
+    const user = this.userRepository.create({
+      ...createUserDto,
+      studentId
+    });
+    return await this.userRepository.save(user);
+  }
+
+  async findAll(): Promise<User[]> {
+    return await this.userRepository.find({
+      where: { isDeleted: false },
+      order: { createdAt: 'DESC' }
+    });
+  }
+
+  async findActiveUsers(): Promise<User[]> {
+    return await this.userRepository.find({
+      where: { isActive: true, isBanned: false },
+      order: { createdAt: 'DESC' }
+    });
+  }
+
+  async findBannedUsers(): Promise<User[]> {
+    return await this.userRepository.find({
+      where: { isBanned: true },
+      order: { bannedAt: 'DESC' }
+    });
+  }
+
+  async findOne(id: number): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { id, isDeleted: false }
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    return user;
+  }
+
+  async findByPhone(phone: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { phone, isDeleted: false }
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with phone ${phone} not found`);
+    }
+
+    return user;
+  }
+
+  async findByEmail(email: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { email, isDeleted: false }
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with email ${email} not found`);
+    }
+
+    return user;
+  }
+
+  async findByStudentId(studentId: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { studentId, isDeleted: false }
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with student ID ${studentId} not found`);
+    }
+
+    return user;
+  }
+
+  async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
+    const user = await this.findOne(id);
+
+    // Check if email is being updated and if it's unique
+    if (updateUserDto.email && updateUserDto.email !== user.email) {
+      const existingEmail = await this.userRepository.findOne({
+        where: { email: updateUserDto.email }
+      });
+
+      if (existingEmail) {
+        throw new BadRequestException('User with this email already exists');
+      }
+    }
+
+    // Check if phone is being updated and if it's unique
+    if (updateUserDto.phone && updateUserDto.phone !== user.phone) {
+      const existingPhone = await this.userRepository.findOne({
+        where: { phone: updateUserDto.phone }
+      });
+
+      if (existingPhone) {
+        throw new BadRequestException('User with this phone number already exists');
+      }
+    }
+
+    Object.assign(user, updateUserDto);
+    return await this.userRepository.save(user);
+  }
+
+  async updateProfileImage(id: number, photoUrl: string): Promise<User> {
+    const user = await this.findOne(id);
+
+    user.photoUrl = photoUrl;
+    return await this.userRepository.save(user);
+  }
+
+  async remove(id: number): Promise<void> {
+    const user = await this.findOne(id);
+
+    // Soft delete - mark as deleted instead of actually deleting
+    user.isDeleted = true;
+    user.deletedAt = new Date();
+    user.isActive = false;
+
+    await this.userRepository.save(user);
+  }
+
+  async banUser(id: number, banUserDto: BanUserDto): Promise<User> {
+    const user = await this.findOne(id);
+
+    if (user.isBanned) {
+      throw new BadRequestException('User is already banned');
+    }
+
+    user.isBanned = true;
+    user.isActive = false;
+    user.banReason = banUserDto.reason;
+    user.bannedAt = new Date();
+
+    return await this.userRepository.save(user);
+  }
+
+  async unbanUser(id: number): Promise<User> {
+    const user = await this.findOne(id);
+
+    if (!user.isBanned) {
+      throw new BadRequestException('User is not banned');
+    }
+
+    user.isBanned = false;
+    user.isActive = true;
+    user.banReason = null;
+    user.bannedAt = null;
+
+    return await this.userRepository.save(user);
+  }
+
+  async activateUser(id: number): Promise<User> {
+    const user = await this.findOne(id);
+
+    if (user.isActive) {
+      throw new BadRequestException('User is already active');
+    }
+
+    if (user.isBanned) {
+      throw new BadRequestException('Cannot activate a banned user. Unban the user first.');
+    }
+
+    user.isActive = true;
+    return await this.userRepository.save(user);
+  }
+
+  async deactivateUser(id: number): Promise<User> {
+    const user = await this.findOne(id);
+
+    if (!user.isActive) {
+      throw new BadRequestException('User is already inactive');
+    }
+
+    user.isActive = false;
+    return await this.userRepository.save(user);
+  }
+
+  async verifyUser(id: number): Promise<User> {
+    const user = await this.findOne(id);
+
+    if (user.isVerified) {
+      throw new BadRequestException('User is already verified');
+    }
+
+    user.isVerified = true;
+    return await this.userRepository.save(user);
+  }
+
+  async getUsersStats(): Promise<{
+    total: number;
+    active: number;
+    banned: number;
+    verified: number;
+    unverified: number;
+    deleted: number;
+  }> {
+    const [total, active, banned, verified, unverified, deleted] = await Promise.all([
+      this.userRepository.count({ where: { isDeleted: false } }),
+      this.userRepository.count({ where: { isActive: true, isBanned: false, isDeleted: false } }),
+      this.userRepository.count({ where: { isBanned: true, isDeleted: false } }),
+      this.userRepository.count({ where: { isVerified: true, isDeleted: false } }),
+      this.userRepository.count({ where: { isVerified: false, isDeleted: false } }),
+      this.userRepository.count({ where: { isDeleted: true } }),
+    ]);
+
+    return { total, active, banned, verified, unverified, deleted };
+  }
+
+  private async generateStudentId(): Promise<string> {
+    // Get the count of existing users to generate the next number
+    const userCount = await this.userRepository.count();
+    const nextNumber = userCount + 1;
+
+    // Format: NEXTBYTE-000001, NEXTBYTE-000002, etc.
+    const paddedNumber = nextNumber.toString().padStart(6, '0');
+    const studentId = `NEXTBYTE-${paddedNumber}`;
+
+    // Check if this student ID already exists (in case of concurrent requests)
+    const existingUser = await this.userRepository.findOne({
+      where: { studentId }
+    });
+
+    if (existingUser) {
+      // If exists, try with a higher number
+      return this.generateStudentIdWithOffset(nextNumber + 1);
+    }
+
+    return studentId;
+  }
+
+  private async generateStudentIdWithOffset(startNumber: number): Promise<string> {
+    let number = startNumber;
+    let studentId: string;
+    let existingUser: User | null;
+
+    do {
+      const paddedNumber = number.toString().padStart(6, '0');
+      studentId = `NEXTBYTE-${paddedNumber}`;
+
+      existingUser = await this.userRepository.findOne({
+        where: { studentId }
+      });
+
+      number++;
+    } while (existingUser);
+
+    return studentId;
+  }
+}
