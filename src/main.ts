@@ -1,24 +1,21 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Handler } from 'aws-lambda';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import * as express from 'express';
+import { ExpressAdapter } from '@nestjs/platform-express';
+import { createServer, proxy } from 'aws-serverless-express';
 
+const expressApp = express();
+const adapter = new ExpressAdapter(expressApp);
 
-let appInstance: any;
+const appPromise = NestFactory.create<NestExpressApplication>(AppModule, adapter)
+  .then(app => {
+    app.enableCors(); // Enable CORS
+    return app.init();
+  });
 
-async function bootstrap() {
-  if (!appInstance) {
-    const app = await NestFactory.create(AppModule);
-    app.enableCors();
-    await app.init(); // serverless environment এর জন্য listen এর পরিবর্তে init ব্যবহার
-    appInstance = app;
-  }
-  return appInstance;
-}
-
-// Vercel-compatible handler
-const handler: Handler = async (req, res) => {
-  const app = await bootstrap();
-  app.getHttpAdapter().getInstance()(req, res);
+// Exported handler for Vercel
+export const handler = async (req, res) => {
+  const app = await appPromise;
+  proxy(createServer(app), req, res);
 };
-
-export default handler;
