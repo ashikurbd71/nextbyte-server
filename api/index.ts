@@ -1,6 +1,6 @@
 // api/index.ts
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from '../dist/app.module';
+import { AppModule } from '../src/app.module';
 import * as serverlessExpress from '@vendia/serverless-express';
 import { Handler, APIGatewayEvent, Context } from 'aws-lambda';
 
