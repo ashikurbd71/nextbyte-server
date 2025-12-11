@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Handler } from '@vercel/node';
+import { Handler } from 'aws-lambda';
+
 
 let appInstance: any;
 
