@@ -1,23 +1,20 @@
-// api/index.ts
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
-import * as serverlessExpress from '@vendia/serverless-express';
-import { Handler, APIGatewayEvent, Context } from 'aws-lambda';
+import { ExpressAdapter } from '@nestjs/platform-express';
+import express, { Request, Response } from 'express';
 
-let cachedServer: Handler;
+// Cache the initialized server across invocations to avoid cold-start cost.
+let cachedServer: express.Express | null = null;
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.init();
-  const expressApp = app.getHttpAdapter().getInstance();
-  return serverlessExpress.default({ app: expressApp });
-}
-
-export const handler: Handler = async (event: APIGatewayEvent, context: Context) => {
+export default async function handler(req: Request, res: Response) {
   if (!cachedServer) {
-    cachedServer = await bootstrap();
+    const expressApp = express();
+    const adapter = new ExpressAdapter(expressApp);
+    const app = await NestFactory.create(AppModule, adapter);
+    app.enableCors();
+    await app.init();
+    cachedServer = expressApp;
   }
-  return cachedServer(event, context, () => {
-    console.log('Callback called');
-  });
-};
+
+  return cachedServer(req, res);
+}
