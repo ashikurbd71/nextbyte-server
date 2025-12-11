@@ -33,7 +33,7 @@ import { TicktesModule } from './ticktes/ticktes.module';
       synchronize: true,
       logging: true,
       ssl: {
-        rejectUnauthorized: false,
+        rejectUnauthorized: true,
       },
       autoLoadEntities: true,
     }),
