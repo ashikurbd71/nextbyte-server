@@ -1,0 +1,42 @@
+import { Repository } from 'typeorm';
+import { Enrollment } from './entities/enrollment.entity';
+import { CreateEnrollmentDto, SslCommerzPaymentDto } from './dto/create-enrollment.dto';
+import { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
+import { NotificationService } from '../notification/notification.service';
+import { CertificateService } from '../certificate/certificate.service';
+import { AssignmentSubmission } from '../assignment-submissions/entities/assignment-submission.entity';
+import { EmailService } from '../admin/email.service';
+import { User } from '../users/entities/user.entity';
+import { Course } from '../course/entities/course.entity';
+export declare class EnrollmentService {
+    private enrollmentRepository;
+    private assignmentSubmissionRepository;
+    private userRepository;
+    private courseRepository;
+    private notificationService;
+    private certificateService;
+    private emailService;
+    constructor(enrollmentRepository: Repository<Enrollment>, assignmentSubmissionRepository: Repository<AssignmentSubmission>, userRepository: Repository<User>, courseRepository: Repository<Course>, notificationService: NotificationService, certificateService: CertificateService, emailService: EmailService);
+    create(createEnrollmentDto: CreateEnrollmentDto): Promise<Enrollment>;
+    private generateTransactionId;
+    initiateSslCommerzPayment(paymentDto: SslCommerzPaymentDto): Promise<any>;
+    handleSslCommerzSuccess(transactionData: any): Promise<Enrollment>;
+    handleSslCommerzFailure(transactionData: any): Promise<void>;
+    handleSslCommerzIpn(body: any): Promise<{
+        status: string;
+        message?: string;
+    }>;
+    findAll(): Promise<Enrollment[]>;
+    findOne(id: number): Promise<Enrollment>;
+    findByStudent(studentId: number): Promise<Enrollment[]>;
+    findByCourse(courseId: number): Promise<Enrollment[]>;
+    update(id: number, updateEnrollmentDto: UpdateEnrollmentDto): Promise<Enrollment>;
+    remove(id: number): Promise<void>;
+    updateProgress(enrollmentId: number, progress: number): Promise<Enrollment>;
+    getCourseLeaderboard(courseId: number): Promise<any[]>;
+    getAssignmentMarksData(courseId: number): Promise<any>;
+    getStudentAssignmentMarksData(studentId: number, courseId: number): Promise<any>;
+    getStudentPerformance(studentId: number): Promise<any>;
+    getEnrollmentStatistics(): Promise<any>;
+    getDynamicMotivationalMessage(studentId: number): Promise<string>;
+}
