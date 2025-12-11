@@ -1,26 +1,21 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { VercelRequest, VercelResponse } from '@vercel/node';
+
+let cachedApp: NestExpressApplication;
 
 async function bootstrap() {
-  try {
-    console.log("🚀 Starting NestJS application...");
-
+  if (!cachedApp) {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
-
-    // Enable CORS
     app.enableCors();
-
-    const port = process.env.PORT ?? 5000;
-
-    await app.listen(port);
-
-    console.log(`✅ Server is running on port ${port}`);
-  } catch (error) {
-    console.error("❌ Bootstrap error:", error);
-    // rethrow so vercel shows fail instead of silent timeout
-    throw error;
+    cachedApp = app;
   }
+  return cachedApp;
 }
 
-bootstrap();
+// Vercel handler
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const app = await bootstrap();
+  app.getHttpAdapter().getInstance()(req, res);
+}
