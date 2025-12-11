@@ -39,7 +39,7 @@ import { TicktesModule } from './ticktes/ticktes.module';
     }),
 
     UsersModule,
-    AdminModule,
+    // AdminModule,
     CategorisModule,
     CourseModule,
     ModuleModule,
