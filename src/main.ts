@@ -17,30 +17,8 @@ async function bootstrap(): Promise<NestExpressApplication> {
             logger: ['error', 'warn'], // Optimize logging for production
         });
 
-  app.enableCors({
-  origin: (origin, callback) => {
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'https://nextbyteitinstitute.com',
-      'https://www.nextbyteitinstitute.com',
-      'https://admin.nextbyteitinstitute.com',
-    ];
+      app.enableCors({ origin: false });
 
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-});
-
-        // 3. Initialize the app to finalize middleware and routing
-        await app.init();
-        cachedApp = app;
-    }
     return cachedApp;
 }
 
