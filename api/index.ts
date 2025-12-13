@@ -8,12 +8,12 @@ async function bootstrapHandler() {
   const app = await NestFactory.create(AppModule, { logger: ['error', 'warn'] });
 
   // CORS completely open
-  app.enableCors({
-    origin: '*', // সব origin allow
-    methods: ['GET','HEAD','PUT','PATCH','POST','DELETE','OPTIONS'],
-    allowedHeaders: ['Content-Type','Authorization','Accept','Origin','X-Requested-With'],
-    credentials: false, // wildcard origin হলে credentials true রাখা যাবে না
-  });
+  // app.enableCors({
+  //   origin: '*', // সব origin allow
+  //   methods: ['GET','HEAD','PUT','PATCH','POST','DELETE','OPTIONS'],
+  //   allowedHeaders: ['Content-Type','Authorization','Accept','Origin','X-Requested-With'],
+  //   credentials: false, // wildcard origin হলে credentials true রাখা যাবে না
+  // });
 
   await app.init();
   return app.getHttpAdapter().getInstance(); // Express instance

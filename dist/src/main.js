@@ -9,11 +9,6 @@ async function bootstrap() {
         const app = await core_1.NestFactory.create(app_module_1.AppModule, {
             logger: ['error', 'warn'],
         });
-        app.enableCors({
-            origin: '*',
-            methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-            credentials: false,
-        });
         await app.init();
         cachedApp = app;
     }

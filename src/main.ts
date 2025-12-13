@@ -12,11 +12,11 @@ async function bootstrap(): Promise<NestExpressApplication> {
         });
 
         // Open CORS: allow all origins
-        app.enableCors({
-            origin: '*',
-            methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-            credentials: false, // wildcard origin হলে true রাখা যাবে না
-        });
+        // app.enableCors({
+        //     origin: '*',
+        //     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+        //     credentials: false, // wildcard origin হলে true রাখা যাবে না
+        // });
 
         await app.init();
         cachedApp = app;
