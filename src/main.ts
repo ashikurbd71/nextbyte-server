@@ -7,6 +7,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 
 
+// --- VERCEL HANDLER & CACHING LOGIC ---
+
 // Cache the initialized NestJS application instance
 let cachedApp: NestExpressApplication;
 
@@ -16,9 +18,13 @@ async function bootstrap(): Promise<NestExpressApplication> {
         const app = await NestFactory.create<NestExpressApplication>(AppModule, {
             logger: ['error', 'warn'], // Optimize logging for production
         });
-
       app.enableCors({ origin: false });
 
+
+        // 3. Initialize the app to finalize middleware and routing
+        await app.init();
+        cachedApp = app;
+    }
     return cachedApp;
 }
 

@@ -9,25 +9,7 @@ async function bootstrap() {
         const app = await core_1.NestFactory.create(app_module_1.AppModule, {
             logger: ['error', 'warn'],
         });
-        app.enableCors({
-            origin: (origin, callback) => {
-                const allowedOrigins = [
-                    'http://localhost:3000',
-                    'https://nextbyteitinstitute.com',
-                    'https://www.nextbyteitinstitute.com',
-                    'https://admin.nextbyteitinstitute.com',
-                ];
-                if (!origin || allowedOrigins.includes(origin)) {
-                    callback(null, true);
-                }
-                else {
-                    callback(new Error('Not allowed by CORS'));
-                }
-            },
-            credentials: true,
-            methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-            allowedHeaders: ['Content-Type', 'Authorization'],
-        });
+        app.enableCors({ origin: false });
         await app.init();
         cachedApp = app;
     }
