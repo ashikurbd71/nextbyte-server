@@ -17,7 +17,7 @@ async function bootstrap(): Promise<NestExpressApplication> {
         'https://www.nextbyteitinstitute.com',
         'https://admin.nextbyteitinstitute.com',
         'https://nextbyteit.vercel.app',
-             'http://localhost:5',
+   
 
       ],
     })
@@ -31,7 +31,16 @@ async function bootstrap(): Promise<NestExpressApplication> {
 if (!process.env.VERCEL) {
   async function startLocalServer() {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
-    app.enableCors();
+     app.enableCors({
+      origin: [
+        'http://localhost:3000',
+        'https://nextbyteitinstitute.com',
+        'https://www.nextbyteitinstitute.com',
+        'https://admin.nextbyteitinstitute.com',
+        'https://nextbyteit.vercel.app',
+   
+
+      ],    })
     const port = process.env.PORT || 5000;
     await app.listen(port);
     console.log(`🚀 Server is running on: http://localhost:${port}`);
