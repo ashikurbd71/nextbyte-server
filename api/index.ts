@@ -3,7 +3,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module'; // Adjust path if necessary
 import { ExpressAdapter } from '@nestjs/platform-express';
-import * as express from 'express';
+import express from 'express';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // Define a variable to hold the cached NestJS app instance
