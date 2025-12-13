@@ -89,20 +89,42 @@ function isOriginAllowed(origin: string | undefined): boolean {
   );
 }
 
+// Helper function to get origin from request (with fallback to Referer)
+function getRequestOrigin(req: VercelRequest): string | undefined {
+  // First try the Origin header (standard for CORS)
+  let origin = req.headers.origin as string | undefined;
+
+  // If no Origin header, try Referer header as fallback
+  if (!origin && req.headers.referer) {
+    try {
+      const refererUrl = new URL(req.headers.referer as string);
+      origin = refererUrl.origin;
+      console.log(`CORS: Using Referer as origin fallback: ${origin}`);
+    } catch (e) {
+      console.log('CORS: Could not parse Referer header');
+    }
+  }
+
+  return origin;
+}
+
 // Helper function to set CORS headers
 function setCorsHeaders(req: VercelRequest, res: VercelResponse): void {
-  const origin = req.headers.origin as string | undefined;
+  const origin = getRequestOrigin(req);
 
   if (isOriginAllowed(origin)) {
     // When credentials is true, we must specify the exact origin, not '*'
     if (origin) {
       res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
     } else {
+      // If no origin at all, allow all origins but without credentials
+      // This handles edge cases where origin is truly missing
       res.setHeader('Access-Control-Allow-Origin', '*');
+      // Don't set credentials when using wildcard
     }
     res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,Origin,X-Requested-With');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
   } else {
     console.error(`CORS: Origin ${origin} rejected. Allowed origins:`, ALLOWED_ORIGINS);
@@ -116,7 +138,7 @@ module.exports = async (req: VercelRequest, res: VercelResponse) => {
 
   // Handle OPTIONS preflight requests immediately
   if (req.method === 'OPTIONS') {
-    const origin = req.headers.origin as string | undefined;
+    const origin = getRequestOrigin(req);
     if (isOriginAllowed(origin)) {
       return res.status(204).end();
     } else {
