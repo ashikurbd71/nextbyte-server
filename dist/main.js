@@ -7,7 +7,16 @@ let cachedApp;
 async function bootstrap() {
     if (!cachedApp) {
         const app = await core_1.NestFactory.create(app_module_1.AppModule);
-        app.enableCors();
+         app.enableCors({
+      origin: [
+        'http://localhost:3000',
+        'https://nextbyteitinstitute.com',
+        'https://www.nextbyteitinstitute.com',
+        'https://admin.nextbyteitinstitute.com',
+        'https://nextbyteit.vercel.app',
+   
+
+      ],    })
         await app.init();
         cachedApp = app;
     }
@@ -16,7 +25,16 @@ async function bootstrap() {
 if (!process.env.VERCEL) {
     async function startLocalServer() {
         const app = await core_1.NestFactory.create(app_module_1.AppModule);
-        app.enableCors();
+     app.enableCors({
+      origin: [
+        'http://localhost:3000',
+        'https://nextbyteitinstitute.com',
+        'https://www.nextbyteitinstitute.com',
+        'https://admin.nextbyteitinstitute.com',
+        'https://nextbyteit.vercel.app',
+   
+
+      ],    })
         const port = process.env.PORT || 5000;
         await app.listen(port);
         console.log(...oo_oo(`2633888480_26_4_26_68_4`, `🚀 Server is running on: http://localhost:${port}`));
