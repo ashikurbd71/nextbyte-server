@@ -89,20 +89,59 @@ function isOriginAllowed(origin: string | undefined): boolean {
   );
 }
 
-// Helper function to get origin from request (with fallback to Referer)
+// Helper function to get origin from request (with multiple fallbacks)
 function getRequestOrigin(req: VercelRequest): string | undefined {
   // First try the Origin header (standard for CORS)
   let origin = req.headers.origin as string | undefined;
+
+  console.log(`CORS Debug - Origin header: ${origin || 'missing'}`);
+  console.log(`CORS Debug - Referer header: ${req.headers.referer || 'missing'}`);
+  console.log(`CORS Debug - Host header: ${req.headers.host || 'missing'}`);
+  console.log(`CORS Debug - X-Forwarded-Host: ${req.headers['x-forwarded-host'] || 'missing'}`);
 
   // If no Origin header, try Referer header as fallback
   if (!origin && req.headers.referer) {
     try {
       const refererUrl = new URL(req.headers.referer as string);
-      origin = refererUrl.origin;
-      console.log(`CORS: Using Referer as origin fallback: ${origin}`);
+      const refererOrigin = refererUrl.origin;
+
+      // Only use referer if it matches one of our allowed origins
+      if (isOriginAllowed(refererOrigin)) {
+        origin = refererOrigin;
+        console.log(`CORS: Using Referer as origin fallback: ${origin}`);
+      } else {
+        console.log(`CORS: Referer origin ${refererOrigin} not in whitelist, ignoring`);
+      }
     } catch (e) {
       console.log('CORS: Could not parse Referer header');
     }
+  }
+
+  // If still no origin, try to construct from Host header (for same-domain requests)
+  if (!origin) {
+    const host = (req.headers['x-forwarded-host'] || req.headers.host) as string | undefined;
+    if (host) {
+      // Check if this matches one of our allowed domains
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const potentialOrigin = `${protocol}://${host}`;
+
+      // Check if this origin is in our whitelist
+      if (ALLOWED_ORIGINS.some(allowed =>
+        potentialOrigin === allowed ||
+        potentialOrigin.replace(/\/$/, '') === allowed ||
+        host.includes('nextbyteitinstitute.com') ||
+        host.includes('nextbyteit.vercel.app')
+      )) {
+        origin = potentialOrigin;
+        console.log(`CORS: Constructed origin from Host header: ${origin}`);
+      }
+    }
+  }
+
+  // Last resort: if we still don't have an origin but request seems to be from our domain,
+  // allow it by returning undefined (which will trigger the wildcard fallback)
+  if (!origin) {
+    console.log('CORS: No origin detected, will use permissive CORS');
   }
 
   return origin;
@@ -112,16 +151,65 @@ function getRequestOrigin(req: VercelRequest): string | undefined {
 function setCorsHeaders(req: VercelRequest, res: VercelResponse): void {
   const origin = getRequestOrigin(req);
 
-  if (isOriginAllowed(origin)) {
+  // Always set CORS headers if origin is allowed OR if origin is null (permissive mode for our domains)
+  const shouldAllow = isOriginAllowed(origin) || !origin;
+
+  if (shouldAllow) {
     // When credentials is true, we must specify the exact origin, not '*'
     if (origin) {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
+      console.log(`CORS: Set headers for origin: ${origin}`);
     } else {
-      // If no origin at all, allow all origins but without credentials
-      // This handles edge cases where origin is truly missing
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      // Don't set credentials when using wildcard
+      // If no origin detected, be permissive but check if request might be from our domain
+      // Try to determine from other headers
+      const host = (req.headers['x-forwarded-host'] || req.headers.host) as string | undefined;
+      const isOurDomain = host && (
+        host.includes('nextbyteitinstitute.com') ||
+        host.includes('nextbyteit.vercel.app') ||
+        host.includes('localhost')
+      );
+
+      // When origin is null, try to determine from Referer or Host headers
+      // Default to www.nextbyteitinstitute.com as it's the main production domain
+      let fallbackOrigin = 'https://www.nextbyteitinstitute.com';
+
+      // Try Referer first (most reliable)
+      if (req.headers.referer) {
+        try {
+          const refererUrl = new URL(req.headers.referer as string);
+          const refererOrigin = refererUrl.origin;
+          if (isOriginAllowed(refererOrigin)) {
+            fallbackOrigin = refererOrigin;
+            console.log(`CORS: Using Referer for fallback origin: ${fallbackOrigin}`);
+          }
+        } catch (e) {
+          // Ignore
+        }
+      }
+
+      // If Referer didn't work, try Host header
+      if (fallbackOrigin === 'https://www.nextbyteitinstitute.com' && isOurDomain) {
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        const hostname = host?.replace(/:\d+$/, ''); // Remove port
+
+        // Try to find exact match
+        const matchingOrigin = ALLOWED_ORIGINS.find(allowed => {
+          const allowedHost = allowed.replace(/^https?:\/\//, '').replace(/^www\./, '');
+          const requestHost = hostname?.replace(/^www\./, '');
+          return allowedHost === requestHost;
+        });
+
+        if (matchingOrigin) {
+          fallbackOrigin = matchingOrigin;
+          console.log(`CORS: Using Host header for fallback origin: ${fallbackOrigin}`);
+        }
+      }
+
+      // Set the determined origin with credentials
+      res.setHeader('Access-Control-Allow-Origin', fallbackOrigin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      console.log(`CORS: Set headers for null origin fallback: ${fallbackOrigin}`);
     }
     res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,Origin,X-Requested-With');
