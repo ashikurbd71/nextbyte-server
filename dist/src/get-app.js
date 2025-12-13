@@ -8,7 +8,12 @@ async function getApp() {
     if (!cachedApp) {
         const app = await core_1.NestFactory.create(app_module_1.AppModule);
         app.enableCors({
-            origin: true,
+            origin: [
+                'http://localhost:3000',
+                'https://nextbyteitinstitute.com',
+                'https://www.nextbyteitinstitute.com',
+                'https://admin.nextbyteitinstitute.com',
+            ],
             credentials: true,
         });
         await app.init();
