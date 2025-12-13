@@ -424,19 +424,30 @@ export class EnrollmentService {
   async getCourseLeaderboard(courseId: number): Promise<any[]> {
     // Get all enrollments for the course
     const enrollments = await this.enrollmentRepository.find({
-      where: { course: { id: courseId } },
+      where: {
+        course: { id: courseId }
+      },
       relations: ['student'],
     });
+
+    // If no enrollments found, return empty array
+    if (!enrollments || enrollments.length === 0) {
+      return [];
+    }
 
     // Calculate average assignment marks for each student
     const leaderboardData = await Promise.all(
       enrollments.map(async (enrollment) => {
+        if (!enrollment.student) {
+          return null;
+        }
+
         const submissions = await this.assignmentSubmissionRepository
           .createQueryBuilder('submission')
-          .leftJoin('submission.assignment', 'assignment')
-          .leftJoin('assignment.module', 'module')
-          .leftJoin('module.course', 'course')
-          .where('submission.student.id = :studentId', { studentId: enrollment.student.id })
+          .innerJoin('submission.assignment', 'assignment')
+          .innerJoin('assignment.module', 'module')
+          .innerJoin('module.course', 'course')
+          .where('submission.studentId = :studentId', { studentId: enrollment.student.id })
           .andWhere('course.id = :courseId', { courseId })
           .andWhere('submission.marks IS NOT NULL')
           .getMany();
@@ -448,10 +459,11 @@ export class EnrollmentService {
         return {
           student: enrollment.student,
           studentName: enrollment.student.name,
+          studentId: enrollment.student.id,
           averageMarks: Math.round(averageMarks * 100) / 100, // Round to 2 decimal places
           assignmentCount,
           totalMarks,
-          progress: enrollment.progress,
+          progress: enrollment.progress || 0,
           enrolledAt: enrollment.enrolledAt,
           completedAt: enrollment.completedAt,
           status: enrollment.status
@@ -459,8 +471,11 @@ export class EnrollmentService {
       })
     );
 
+    // Filter out any null entries
+    const validLeaderboardData = leaderboardData.filter(data => data !== null);
+
     // Sort by average marks (descending) and then by assignment count (descending)
-    leaderboardData.sort((a, b) => {
+    validLeaderboardData.sort((a, b) => {
       if (b.averageMarks !== a.averageMarks) {
         return b.averageMarks - a.averageMarks;
       }
@@ -468,7 +483,7 @@ export class EnrollmentService {
     });
 
     // Add rank
-    return leaderboardData.map((data, index) => ({
+    return validLeaderboardData.map((data, index) => ({
       rank: index + 1,
       ...data
     }));

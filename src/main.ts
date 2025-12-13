@@ -16,6 +16,18 @@ async function bootstrap(): Promise<NestExpressApplication> {
   return cachedApp;
 }
 
+// Start server locally if not on Vercel
+if (!process.env.VERCEL) {
+  async function startLocalServer() {
+    const app = await NestFactory.create<NestExpressApplication>(AppModule);
+    app.enableCors();
+    const port = process.env.PORT || 5000;
+    await app.listen(port);
+    console.log(`🚀 Server is running on: http://localhost:${port}`);
+  }
+  startLocalServer();
+}
+
 // Vercel handler
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const app = await bootstrap();

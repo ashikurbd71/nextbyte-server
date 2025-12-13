@@ -13,7 +13,6 @@ const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const typeorm_1 = require("@nestjs/typeorm");
 const users_module_1 = require("./users/users.module");
-const admin_module_1 = require("./admin/admin.module");
 const categoris_module_1 = require("./categoris/categoris.module");
 const course_module_1 = require("./course/course.module");
 const module_module_1 = require("./module/module.module");
@@ -42,7 +41,6 @@ exports.AppModule = AppModule = __decorate([
                 autoLoadEntities: true,
             }),
             users_module_1.UsersModule,
-            admin_module_1.AdminModule,
             categoris_module_1.CategorisModule,
             course_module_1.CourseModule,
             module_module_1.ModuleModule,
