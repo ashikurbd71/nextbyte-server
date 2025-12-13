@@ -3,13 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = handler;
 const core_1 = require("@nestjs/core");
 const app_module_1 = require("./app.module");
-const ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-    'https://nextbyteitinstitute.com',
-    'https://www.nextbyteitinstitute.com',
-    'https://admin.nextbyteitinstitute.com',
-    'https://nextbyteit.vercel.app',
-];
 let cachedApp;
 async function bootstrap() {
     if (!cachedApp) {
@@ -18,20 +11,22 @@ async function bootstrap() {
         });
         app.enableCors({
             origin: (origin, callback) => {
-                if (!origin) {
-                    return callback(null, true);
+                const allowedOrigins = [
+                    'http://localhost:3000',
+                    'https://nextbyteitinstitute.com',
+                    'https://www.nextbyteitinstitute.com',
+                    'https://admin.nextbyteitinstitute.com',
+                ];
+                if (!origin || allowedOrigins.includes(origin)) {
+                    callback(null, true);
                 }
-                if (ALLOWED_ORIGINS.includes(origin)) {
-                    return callback(null, true);
+                else {
+                    callback(new Error('Not allowed by CORS'));
                 }
-                if (origin.endsWith('.vercel.app')) {
-                    return callback(null, true);
-                }
-                console.error(`CORS: Origin ${origin} rejected.`);
-                callback(new Error(`Origin ${origin} not allowed by CORS`), false);
             },
-            methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
             credentials: true,
+            methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+            allowedHeaders: ['Content-Type', 'Authorization'],
         });
         await app.init();
         cachedApp = app;

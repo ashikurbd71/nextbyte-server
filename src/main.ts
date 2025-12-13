@@ -5,17 +5,7 @@ import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// Define the whitelist globally for both local and Vercel environments
-const ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-    'https://nextbyteitinstitute.com',
-    'https://www.nextbyteitinstitute.com',
-    'https://admin.nextbyteitinstitute.com',
-    'https://nextbyteit.vercel.app', // Your primary Vercel app domain
-    // Add any other specific, known production subdomains here
-];
 
-// --- VERCEL HANDLER & CACHING LOGIC ---
 
 // Cache the initialized NestJS application instance
 let cachedApp: NestExpressApplication;
@@ -27,32 +17,25 @@ async function bootstrap(): Promise<NestExpressApplication> {
             logger: ['error', 'warn'], // Optimize logging for production
         });
 
-        // 2. Implement the Dynamic CORS Function
-        app.enableCors({
-            origin: (origin, callback) => {
-                // If no origin is provided (e.g., non-cross-origin request), allow it
-                if (!origin) {
-                    return callback(null, true);
-                }
+  app.enableCors({
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://nextbyteitinstitute.com',
+      'https://www.nextbyteitinstitute.com',
+      'https://admin.nextbyteitinstitute.com',
+    ];
 
-                // Check against the fixed whitelist
-                if (ALLOWED_ORIGINS.includes(origin)) {
-                    return callback(null, true);
-                }
-
-                // Check for Vercel preview domains (e.g., https://app-git-branch-user.vercel.app)
-                if (origin.endsWith('.vercel.app')) {
-                    // You can add stricter checks here if needed, but this allows all Vercel previews.
-                    return callback(null, true);
-                }
-
-                // Log and reject any other origin
-                console.error(`CORS: Origin ${origin} rejected.`);
-                callback(new Error(`Origin ${origin} not allowed by CORS`), false);
-            },
-            methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-            credentials: true, // Keep this if you use cookies or authorization headers
-        });
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+});
 
         // 3. Initialize the app to finalize middleware and routing
         await app.init();
