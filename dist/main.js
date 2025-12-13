@@ -10,9 +10,10 @@ async function bootstrap() {
          app.enableCors({
       origin: [
         'http://localhost:3000',
-        'https://nextbyteitinstitute.com',
         'https://www.nextbyteitinstitute.com',
+        'https://nextbyteitinstitute.com',
         'https://admin.nextbyteitinstitute.com',
+        
         'https://nextbyteit.vercel.app',
    
 
@@ -27,11 +28,13 @@ if (!process.env.VERCEL) {
         const app = await core_1.NestFactory.create(app_module_1.AppModule);
      app.enableCors({
       origin: [
-        'http://localhost:3000',
-        'https://nextbyteitinstitute.com',
+       'http://localhost:3000',
         'https://www.nextbyteitinstitute.com',
+        'https://nextbyteitinstitute.com',
         'https://admin.nextbyteitinstitute.com',
+        
         'https://nextbyteit.vercel.app',
+   
    
 
       ],    })
