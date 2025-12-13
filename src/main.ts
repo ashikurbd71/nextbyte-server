@@ -9,7 +9,18 @@ let cachedApp: NestExpressApplication;
 async function bootstrap(): Promise<NestExpressApplication> {
   if (!cachedApp) {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
-    app.enableCors();
+    
+    app.enableCors({
+      origin: [
+        'http://localhost:3000',
+        'https://nextbyteitinstitute.com',
+        'https://www.nextbyteitinstitute.com',
+        'https://admin.nextbyteitinstitute.com',
+        'https://nextbyteit.vercel.app',
+             'http://localhost:5',
+
+      ],
+    })
     await app.init();
     cachedApp = app;
   }
