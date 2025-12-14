@@ -18,7 +18,11 @@ async function bootstrap(): Promise<NestExpressApplication> {
         const app = await NestFactory.create<NestExpressApplication>(AppModule, {
             logger: ['error', 'warn'], // Optimize logging for production
         });
-      app.enableCors({ origin: false });
+  app.enableCors({
+  origin: true, // ✅ সব domain allow
+  credentials: false, // optional: cookie/credential নেই
+});
+
 
 
         // 3. Initialize the app to finalize middleware and routing

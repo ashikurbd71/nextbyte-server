@@ -7,7 +7,10 @@ let cachedApp;
 async function getApp() {
     if (!cachedApp) {
         const app = await core_1.NestFactory.create(app_module_1.AppModule);
-        app.enableCors({ origin: false });
+        app.enableCors({
+            origin: true,
+            credentials: false,
+        });
         await app.init();
         cachedApp = app;
     }
