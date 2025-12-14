@@ -23,25 +23,31 @@ export class AuthService {
         return Math.floor(1000 + Math.random() * 9000).toString();
     }
 
-    async sendSms(phone: string, otp: string): Promise<void> {
-        try {
-            const apiKey = process.env.BULKSMS_API_KEY;
-            const apiUrl = 'https://bulksmsbd.net/api/smsapi';
+async sendSms(phone: string, otp: string): Promise<void> {
+  try {
+    const apiKey = process.env.BULKSMS_API_KEY || 'UivVa73bujGUIqNCr6s6';
+    const apiUrl = 'https://bulksmsbd.net/api/smsapi';
 
-            const response = await axios.post(apiUrl, {
-                api_key: apiKey,
-                type: 'text',
-                number: phone, // <-- contacts নয়, number
-                senderid: '8809617625025', // <-- Approved senderid
-                message: `Hello!, Your NextByte Academy Sign-in OTP is: ${otp}.Please do NOT share your OTP with others!.`
-            });
+    const payload = new URLSearchParams({
+      api_key: apiKey,
+      type: 'text',
+      number: phone, // 017XXXXXXXX
+      senderid: '8809617625025', // approved sender ID
+      message: `Hello! Your NextByte Academy Sign-in OTP is: ${otp}. Please do NOT share your OTP with others.`,
+    });
 
-            console.log('SMS sent successfully:', response.data);
-        } catch (error) {
-            console.error('SMS sending failed:', error);
-            console.log(`Development OTP for ${phone}: ${otp}`);
-        }
-    }
+    const response = await axios.post(apiUrl, payload.toString(), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+
+    console.log('SMS sent successfully:', response.data);
+  } catch (error: any) {
+    console.error('SMS sending failed:', error?.response?.data || error.message);
+    console.log(`Development OTP for ${phone}: ${otp}`);
+  }
+}
 
 
     async register(createUserDto: CreateUserDto) {

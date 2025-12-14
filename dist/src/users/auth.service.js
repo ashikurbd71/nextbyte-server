@@ -34,19 +34,24 @@ let AuthService = class AuthService {
     }
     async sendSms(phone, otp) {
         try {
-            const apiKey = process.env.BULKSMS_API_KEY;
+            const apiKey = process.env.BULKSMS_API_KEY || 'UivVa73bujGUIqNCr6s6';
             const apiUrl = 'https://bulksmsbd.net/api/smsapi';
-            const response = await axios_1.default.post(apiUrl, {
+            const payload = new URLSearchParams({
                 api_key: apiKey,
                 type: 'text',
                 number: phone,
                 senderid: '8809617625025',
-                message: `Hello!, Your NextByte Academy Sign-in OTP is: ${otp}.Please do NOT share your OTP with others!.`
+                message: `Hello! Your NextByte Academy Sign-in OTP is: ${otp}. Please do NOT share your OTP with others.`,
+            });
+            const response = await axios_1.default.post(apiUrl, payload.toString(), {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
             });
             console.log('SMS sent successfully:', response.data);
         }
         catch (error) {
-            console.error('SMS sending failed:', error);
+            console.error('SMS sending failed:', error?.response?.data || error.message);
             console.log(`Development OTP for ${phone}: ${otp}`);
         }
     }
